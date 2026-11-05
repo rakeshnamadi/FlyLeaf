@@ -498,7 +498,7 @@ Building needs the .NET 10 SDK and the Visual Studio C++ build tools. Build outp
 
 | Decision | Why |
 |---|---|
-| .NET 10 instead of .NET 8 | .NET 8 support ended in November 2026, and .NET 10 is supported until November 2028 |
+| .NET 10 instead of .NET 8 | .NET 8 support ends on 10 November 2026, and .NET 10 is supported until November 2028 |
 | Native AOT instead of SharpShell | Explorer never has to load the .NET runtime, and SharpShell doesn't fit .NET 8 or later |
 | `LocalService` instead of `LocalSystem` | Least privilege, with access to only one folder of the profile |
 | Pipe restricted to one user's SID | Other accounts on the PC can't read the notes |
