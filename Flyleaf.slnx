@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Flyleaf.Core/Flyleaf.Core.csproj" />
+    <Project Path="src/Flyleaf/Flyleaf.csproj" />
+    <Project Path="src/FlyleafMenu/FlyleafMenu.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/FlyleafStore/FlyleafStore.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/FlySetup/FlySetup.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/FlyShell/FlyShell.csproj" />
+    <Project Path="src/FlyWatcher/FlyWatcher.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Flyleaf.Tests/Flyleaf.Tests.csproj" />
+  </Folder>
+</Solution>

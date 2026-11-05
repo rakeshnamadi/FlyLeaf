@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Microsoft Store version: one tray app that draws its own tooltip. No service, no shell extension, no admin rights. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Flyleaf</AssemblyName>
+    <RootNamespace>Flyleaf</RootNamespace>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Only for the UI Automation client, which .NET ships as part of WPF. -->
+    <UseWPF>true</UseWPF>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationIcon>..\Flyleaf\Flyleaf.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Compile Include="..\Flyleaf\MainForm.cs" Link="MainForm.cs" />
+    <Compile Include="..\Flyleaf\TrayApplicationContext.cs" Link="TrayApplicationContext.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Flyleaf.Core\Flyleaf.Core.csproj" />
+  </ItemGroup>
+</Project>

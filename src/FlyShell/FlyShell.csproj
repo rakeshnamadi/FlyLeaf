@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Published with Native AOT so that Explorer loads a plain native DLL and never starts the .NET runtime. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishAot>true</PublishAot>
+    <NativeLib>Shared</NativeLib>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <OptimizationPreference>Size</OptimizationPreference>
+    <StripSymbols>true</StripSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only the wire format is shared. FlyShell stays free of the JSON and file code in Flyleaf.Core. -->
+    <Compile Include="..\Flyleaf.Core\PipeProtocol.cs" Link="PipeProtocol.cs" />
+  </ItemGroup>
+</Project>
