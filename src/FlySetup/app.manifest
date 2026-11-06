@@ -4,7 +4,7 @@
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
-        <!-- Starts unelevated to read the real user's details, then elevates a second copy of itself for machine-wide steps. -->
+        <!-- Flyleaf installs per user. Without this line, Windows would ask for elevation because the file name contains "Setup". -->
         <requestedExecutionLevel level="asInvoker" uiAccess="false" />
       </requestedPrivileges>
     </security>

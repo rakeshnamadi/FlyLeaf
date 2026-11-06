@@ -24,9 +24,11 @@ The project contains two editions. They share the same note editor, data model a
 | **Parts** | Tray app, Windows service, Explorer DLL | One tray app, plus a menu DLL in the package |
 | **Tooltip** | Native Explorer tooltip | Flyleaf's own note card |
 | **Admin rights** | Required to install | Not required |
-| **Distribution** | `Flyleaf-Setup.exe` | Microsoft Store package (`Flyleaf.msix`) |
-| **Signing** | Needs your own trusted certificate | Signed by the Store when published |
-| **Status** | Blocked on unsigned PCs with Smart App Control | Current direction |
+| **Distribution** | Source only, no longer packaged | `Flyleaf-Setup.exe` (per user), or a Microsoft Store package (`Flyleaf.msix`) |
+| **Signing** | Needs your own trusted certificate | Setup: your own certificate. Store: signed when published |
+| **Status** | Retained in source | Current direction |
+
+The "Store edition" is the same app however it's installed. Only the Store package gets the main-menu item, because that needs a package identity.
 
 ### Current status
 
@@ -34,11 +36,12 @@ The project contains two editions. They share the same note editor, data model a
 |---|---|
 | Note editor, lists, history, missing-path highlighting | Working |
 | Store edition hover detection and note card in real File Explorer | Working (light theme) |
-| Store edition right-click item from a non-packaged copy | Working (under **Show more options**) |
+| `Flyleaf-Setup.exe` install, sign-in start and uninstall | Working on Windows 11 |
+| Right-click item when installed by Setup | Working (under **Show more options**) |
 | Main-menu DLL | Works when called directly through COM. Not yet seen in a real menu |
 | Installed MSIX package | **Not yet tested** |
 | Microsoft Store approval | **Not yet submitted** |
-| Classic edition install | Rollback confirmed when Windows blocks it. A successful install is **not yet tested** |
+| Classic edition | No longer packaged. Its service and tooltip were **never seen installed**, because Smart App Control blocked them |
 
 ---
 
@@ -197,10 +200,9 @@ classDiagram
 | Service privileges | Runs as `LocalService`, with read access only to the notes folder |
 | Who can read notes over the pipe | Only the installing user's SID |
 | Impersonation | The DLL connects anonymously, so the service can't act as the user |
-| Elevation | Setup starts unelevated to read the real user's details, then elevates a second copy |
-| Tampered system tools | Setup runs `sc.exe`, `icacls.exe` and `regsvr32.exe` by their full System32 paths |
+| Elevation | Setup needs none: it writes only to the user's own profile and registry |
 | Planted DLLs | Setup restricts DLL loading to System32 at startup |
-| Failed install | Setup rolls back every machine-wide change |
+| Failed install | Setup removes everything it added, and an upgrade extracts beside the current copy first |
 | Second-launch channel (Store) | Pipe limited to the current user with `PipeOptions.CurrentUserOnly` |
 | Hover data | Compared with local notes only, and never stored or sent |
 
@@ -273,29 +275,25 @@ sequenceDiagram
     end
 ```
 
-### 5.4 Classic edition: installing with rollback
+### 5.4 Installing with Setup
 
 ```mermaid
 sequenceDiagram
     actor User
-    participant Setup as Setup, unelevated
-    participant Elevated as Setup, elevated
-    participant Windows
+    participant Setup as Flyleaf-Setup.exe
+    participant Profile as User profile and registry
+    participant App as Flyleaf.exe
 
-    User->>Setup: Run Flyleaf-Setup.exe and click OK
-    Setup->>Setup: Read the user's SID and AppData path
-    Setup->>Elevated: Relaunch with administrator approval
-    Elevated->>Windows: Extract files and register the event source
-    Elevated->>Windows: Grant LocalService read access to the notes folder
-    Elevated->>Windows: Create and start the service
-    alt Everything succeeds
-        Elevated->>Windows: Register the DLL and Add/Remove Programs entry
-        Elevated-->>Setup: Exit code 0
-        Setup->>Windows: Add the startup entry and start the tray app
+    User->>Setup: Run it and click OK
+    Setup->>Setup: Stop any running copy
+    Setup->>Profile: Extract to Flyleaf.new, then replace the old folder
+    Setup->>Profile: Add startup, Add/Remove Programs and Start menu entries
+    Setup->>App: Start the app and check it keeps running
+    alt The app is running
+        App->>Profile: Add the right-click item
         Setup-->>User: Flyleaf is installed
-    else Windows blocks a component or a step fails
-        Elevated->>Windows: Undo every machine-wide change
-        Elevated-->>Setup: Exit code 1 and the reason
+    else Windows blocks the app or it fails to start
+        Setup->>Profile: Remove everything it added
         Setup-->>User: Show the reason
     end
 ```
@@ -381,7 +379,7 @@ sequenceDiagram
 | `src/Flyleaf` | `Flyleaf.exe` | Classic tray app. Owns the shared `MainForm` and tray code |
 | `src/FlyWatcher` | `FlyWatcher.exe` | Classic service: index, file watcher, pipe server |
 | `src/FlyShell` | `FlyShell.dll` | Classic Explorer tooltip handler |
-| `src/FlySetup` | `Flyleaf-Setup.exe` | Classic installer, also built without files as the uninstaller |
+| `src/FlySetup` | `Flyleaf-Setup.exe` | Per-user installer for the Store edition app, also built without files as the uninstaller |
 | `src/FlyleafStore` | `Flyleaf.exe` | Store edition: hover detection, note card, single-instance channel |
 | `src/FlyleafMenu` | `FlyleafMenu.dll` | Store edition main-menu command |
 | `tests/Flyleaf.Tests` | Test assembly | Unit and end-to-end tests |
@@ -406,8 +404,7 @@ Run with `dotnet test tests/Flyleaf.Tests/Flyleaf.Tests.csproj -c Release`.
 |---|---|---|
 | Path rules, pipe escaping, note model, repository, lookup, list formatting | 40 | Passed |
 | Real Explorer hover detection (runs only with `FLYLEAF_UI_TESTS=1`) | 1 | Skipped in the latest run. Passed when last run on request, before the tooltip and menu changes |
-| `FlyShell.dll` with the service stopped | 1 | Passed |
-| Service index and pipe tests, and `FlyShell.dll` through the pipe | 8 | **Could not run:** Smart App Control blocks `FlyWatcher.dll`. All passed in earlier builds |
+| Classic service index and pipe tests, and `FlyShell.dll` | 9 | **Not run on current builds:** Smart App Control blocks `FlyWatcher.dll`, and Setup no longer builds `FlyShell.dll`. All passed in earlier builds |
 
 ### 7.2 Real-world checks
 
@@ -422,13 +419,17 @@ These ran on Windows 11 with Smart App Control on, using temporary notes files.
 | Save, with the old text moving to History | Passed |
 | Right-click verb opening the note in the running copy | Passed |
 | `FlyleafMenu.dll` title, icon and command through COM | Passed |
-| Classic setup blocked by Windows, then rollback | Passed: only an empty notes folder remained |
+| Setup silent install: files, shortcut, startup and Add/Remove entries | Passed |
+| Hover and right-click item from the installed copy | Passed |
+| Start at sign-in (`--tray`) opens no window | Passed |
+| Uninstall removes everything and keeps real notes | Passed |
 
 ### 7.3 Still to test
 
 - Installing and starting the MSIX, including start at sign-in.
 - The item in Windows 11's main right-click menu, and its icon.
-- A successful Classic install, the native tooltip and uninstall.
+- Setup on a second PC, with a downloaded copy and the prompts shown. Tests so far ran locally and silently.
+- Setup's "blocked" message and clean-up in this per-user version, which is untested because Windows allowed the app.
 - The dark theme, desktop hover and multiple Explorer tabs.
 - Drag-and-drop, Browse and the tray menu by hand.
 
@@ -440,8 +441,8 @@ These ran on Windows 11 with Smart App Control on, using temporary notes files.
 
 | Output | Command |
 |---|---|
-| Classic: `dist\Flyleaf-Setup.exe` | `powershell -ExecutionPolicy Bypass -File installer/build.ps1` |
-| Classic, signed | Add `-CertThumbprint YOUR_THUMBPRINT` |
+| Setup: `dist\Flyleaf-Setup.exe` | `powershell -ExecutionPolicy Bypass -File installer/build.ps1` |
+| Setup, signed | Add `-CertThumbprint YOUR_THUMBPRINT` |
 | Store: `dist\store\Flyleaf.msix` | `powershell -ExecutionPolicy Bypass -File installer/build-store.ps1` |
 
 Building needs the .NET 10 SDK and the Visual Studio C++ build tools. Build output isn't stored in Git.
@@ -504,7 +505,9 @@ Building needs the .NET 10 SDK and the Visual Studio C++ build tools. Build outp
 | Pipe restricted to one user's SID | Other accounts on the PC can't read the notes |
 | Escaped lines in the pipe protocol | Multi-line notes would otherwise be cut off at the first line |
 | File watcher instead of a pipe "changed" signal | Simpler, with no extra message type |
-| Custom setup instead of ClickOnce, WiX or NSIS | ClickOnce can't install a service or shell extension, and the custom setup needs no extra tooling |
+| Custom setup instead of ClickOnce, WiX or NSIS | One double-click file with no extra build tooling |
+| Setup installs the one-app version per user | No admin prompt and no service for Windows to block, so peers can install it themselves |
+| Setup installs a folder, not a single-file app | It matches the tested package layout, and nothing unpacks to a temp folder at run time |
 | Added a Store edition | Smart App Control blocks unsigned files whichever language they're written in, and the Store signs packages |
 | Own note card in the Store edition | Packaged apps can't load an in-process tooltip handler into Explorer |
 | Manifest-based menu command instead of registry verbs | It reaches Windows 11's main menu and is removed on uninstall |

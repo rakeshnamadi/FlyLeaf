@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     Built twice by installer\build.ps1. Without PayloadDir the result is the small uninstaller.
-    With PayloadDir it embeds every component (and that uninstaller) and becomes Flyleaf-Setup.exe.
+    With PayloadDir it embeds the app (and that uninstaller) and becomes Flyleaf-Setup.exe.
   -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -18,9 +18,6 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(PayloadDir)' != ''">
-    <EmbeddedResource Include="$(PayloadDir)\Flyleaf.exe" LogicalName="payload/Flyleaf.exe" />
-    <EmbeddedResource Include="$(PayloadDir)\FlyWatcher.exe" LogicalName="payload/FlyWatcher.exe" />
-    <EmbeddedResource Include="$(PayloadDir)\FlyShell.dll" LogicalName="payload/FlyShell.dll" />
-    <EmbeddedResource Include="$(PayloadDir)\Uninstall-Flyleaf.exe" LogicalName="payload/Uninstall-Flyleaf.exe" />
+    <EmbeddedResource Include="$(PayloadDir)\Flyleaf.zip" LogicalName="payload/Flyleaf.zip" />
   </ItemGroup>
 </Project>

@@ -17,7 +17,7 @@ Flyleaf has no accounts, logins or permission levels. Everyone who installs it c
 | **IT administrator** | Install, support and back up Flyleaf | [IT administrator](#it-administrator) |
 | **Developer or maintainer** | Build and release Flyleaf | [Developer or maintainer](#developer-or-maintainer) |
 
-> **Before you start:** Flyleaf is pre-release and isn't in the Microsoft Store yet. Some features below are marked **Installed version only**, because they need the Store package, which is still being tested.
+> **Before you start:** Flyleaf is pre-release and isn't in the Microsoft Store yet. To install it, double-click `Flyleaf-Setup.exe` and click **OK**. It needs no admin rights. If Windows shows **"Windows protected your PC"**, see [IT administrator](#smart-app-control-and-smartscreen).
 
 ---
 
@@ -33,13 +33,14 @@ Flyleaf has no accounts, logins or permission levels. Everyone who installs it c
 ### Add a note from File Explorer
 
 1. Right-click a file or folder.
-2. Choose **Add Flyleaf note**. On Windows 11, it may be under **Show more options**.
-3. Flyleaf opens with the cursor in the note box. Type your note.
-4. Click **Save**, or press **Ctrl+S**.
+2. On Windows 11, choose **Show more options**.
+3. Choose **Add Flyleaf note**.
+4. Flyleaf opens with the cursor in the note box. Type your note.
+5. Click **Save**, or press **Ctrl+S**.
 
 ### Add a note from Flyleaf
 
-1. Open Flyleaf by clicking its icon in the system tray.
+1. Open Flyleaf from the Start menu, or by clicking its icon in the system tray.
 2. Drag a file or folder onto the window, or click **Browse file…** or **Browse folder…**.
 3. Type your note, then click **Save**.
 
@@ -121,15 +122,11 @@ Notes only match where the file paths are identical on both PCs, such as the sam
 
 ## IT administrator
 
-### Editions
+### Installing
 
-| | Store edition | Classic edition |
-|---|---|---|
-| **Admin rights to install** | No | Yes |
-| **Background service** | None | `FlyWatcher` |
-| **Tooltip** | Flyleaf's note card | Native Explorer tooltip |
-| **Install from** | Microsoft Store (planned) | `Flyleaf-Setup.exe` |
-| **Users per install** | Each user installs their own | One |
+`Flyleaf-Setup.exe` installs for the current user only and needs no admin rights, so each person on a PC installs their own copy. Add `--silent` for a scripted install with no prompts.
+
+A Microsoft Store listing is planned. It would add the item to Windows 11's main right-click menu.
 
 ### Smart App Control and SmartScreen
 
@@ -139,24 +136,24 @@ Current builds are unsigned, so Windows may stop them:
 |---|---|---|
 | **"An Application Control policy has blocked this file"** | Smart App Control blocked an unsigned file | Use a signed or Store build. We don't recommend turning Smart App Control off, because turning it back on may not be possible without resetting Windows. |
 | **"Windows protected your PC"** | SmartScreen doesn't recognise the file | Confirm where the file came from, then choose **More info > Run anyway**. |
-| **"Windows blocked Flyleaf from running, and the changes have been undone"** | Classic setup was blocked and rolled itself back | Use a signed copy. No clean-up is needed. |
+| **"Windows blocked Flyleaf from running, and the changes have been undone"** | Setup installed the app, Windows blocked it, and Setup removed it | Use a signed copy. No clean-up is needed. |
 
 ### What Flyleaf changes on a PC
 
-| Item | Location | Edition |
-|---|---|---|
-| Notes | `%AppData%\Flyleaf\notes.json` | Both |
-| Program files | `C:\Program Files\Flyleaf` | Classic |
-| Windows service | `FlyWatcher`, running as `LocalService` | Classic |
-| Explorer extension | Registered for all files and folders | Classic |
-| Read access for `LocalService` | `%AppData%\Flyleaf` | Classic |
-| Event log source | `Flyleaf`, in the Application log | Classic |
-| Startup entry | Current user | Classic |
-| Package | Managed by Windows | Store |
+Everything is per user. Setup changes nothing machine-wide.
+
+| Item | Location |
+|---|---|
+| Notes | `%AppData%\Flyleaf\notes.json` |
+| Program files | `%LocalAppData%\Programs\Flyleaf` |
+| Start menu shortcut | Current user's Start menu |
+| Startup entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
+| Right-click item | `HKCU\Software\Classes`, for all files and folders |
+| Add/Remove Programs entry | Current user |
 
 ### Privacy
 
-Flyleaf has no network code, so notes and file paths stay on the PC. To check what's under the pointer, the Store edition reads the item's name from File Explorer and compares it with the local notes. It doesn't store or send that name.
+Flyleaf has no network code, so notes and file paths stay on the PC. To check what's under the pointer, Flyleaf reads the item's name from File Explorer and compares it with the local notes. It doesn't store or send that name.
 
 ### Back up and restore
 
@@ -172,16 +169,12 @@ If `notes.json` is ever damaged, Flyleaf keeps it as `notes.corrupt-<date>.json`
 | No note appears | Is Flyleaf running in the tray? Are you in a normal folder view? Does the note have text? |
 | Note appears for the wrong file | Turn on file extensions, as two files may share a name. |
 | Row is red with **path missing** | The item moved, or its drive or network share isn't connected. |
-| Classic edition shows no tooltips | Is the `FlyWatcher` service running? Check the Application log for source `Flyleaf`. |
+| Right-click item is missing | On Windows 11, look under **Show more options**. The item is added when Flyleaf first starts. |
 | Something was blocked | Check Event Viewer under `Microsoft-Windows-CodeIntegrity/Operational` for events 3033 and 3077. |
-| Right-click item remains after a trial | Run `Flyleaf.exe --remove-menu` from the trial copy. |
 
 ### Uninstall
 
-| Edition | Steps | Your notes |
-|---|---|---|
-| **Store** *(Installed version only)* | **Settings > Apps > Installed apps > Flyleaf > Uninstall** | Stay in `%AppData%\Flyleaf` |
-| **Classic** | The same, then answer the prompt about notes | Kept unless you choose to delete them |
+Go to **Settings > Apps > Installed apps > Flyleaf > Uninstall**, then answer the prompt about your notes. They're kept unless you choose to delete them.
 
 ---
 
@@ -190,14 +183,16 @@ If `notes.json` is ever damaged, Flyleaf keeps it as `notes.corrupt-<date>.json`
 Full details are in the [Technical Documentation](Technical-Documentation.md). In brief:
 
 1. Install the .NET 10 SDK and the Visual Studio C++ build tools.
-2. Build the package you need:
-
-   ```bash
-   powershell -ExecutionPolicy Bypass -File installer/build-store.ps1
-   ```
+2. Build Setup, the file to share with others:
 
    ```bash
    powershell -ExecutionPolicy Bypass -File installer/build.ps1
+   ```
+
+   Or build the Store package:
+
+   ```bash
+   powershell -ExecutionPolicy Bypass -File installer/build-store.ps1
    ```
 
 3. Run the tests:
@@ -215,7 +210,7 @@ Automated UI tests set the `FLYLEAF_NOTES_FILE` environment variable so that the
 | Action | How |
 |---|---|
 | Read a note | Rest the pointer on the item for about half a second |
-| Add a note | Right-click the item, then **Add Flyleaf note** |
+| Add a note | Right-click the item, **Show more options**, then **Add Flyleaf note** |
 | Save | **Ctrl+S** or **Save** |
 | Start a list | **• List** |
 | Next bullet | **Enter** |

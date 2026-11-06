@@ -2,76 +2,17 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using FlySetup;
-using Microsoft.Win32;
 
 // Setup is usually run from a Downloads folder, so never load a DLL planted beside it.
 NativeMethods.SetDefaultDllDirectories(NativeMethods.LOAD_LIBRARY_SEARCH_SYSTEM32);
 
-return args switch
+// --silent shows no prompts, for scripted installs and automated tests.
+var silent = args.Contains("--silent");
+return UserInstaller.HasPayload ? await InstallAsync(silent) : Uninstall(silent);
+
+static async Task<int> InstallAsync(bool silent)
 {
-    ["--elevated-install", var notesDirectory, var userSid, var logPath] =>
-        await RunElevatedAsync(logPath, ct => MachineInstaller.InstallAsync(notesDirectory, userSid, ct)),
-    ["--elevated-uninstall", var logPath] =>
-        await RunElevatedAsync(logPath, MachineInstaller.UninstallAsync),
-    _ when MachineInstaller.HasPayload => await InstallAsync(),
-    _ => await UninstallAsync(),
-};
-
-static async Task<int> RunElevatedAsync(string logPath, Func<CancellationToken, Task> action)
-{
-    try
-    {
-        await action(CancellationToken.None);
-        return 0;
-    }
-    catch (Exception ex)
-    {
-        await File.WriteAllTextAsync(logPath, ex.Message);
-        return 1;
-    }
-}
-
-static async Task<int> InstallAsync()
-{
-    if (!Ui.Confirm($"Install Flyleaf for {Environment.UserName}?\n\nA note on every file: hover over a file in Explorer to read its note.\n\nWindows will ask for administrator approval."))
-    {
-        return 0;
-    }
-
-    // Read these now, as the elevated copy may be running under a different administrator account.
-    var notesDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Flyleaf");
-    var userSid = System.Security.Principal.WindowsIdentity.GetCurrent().User!.Value;
-
-    try
-    {
-        Directory.CreateDirectory(notesDirectory);
-        StopTrayApp();
-
-        if (!await RunElevatedCopyAsync(["--elevated-install", notesDirectory, userSid]))
-        {
-            return 1;
-        }
-
-        var tray = Path.Combine(MachineInstaller.InstallDirectory, "Flyleaf.exe");
-        using (var run = Registry.CurrentUser.CreateSubKey(MachineInstaller.RunKey))
-        {
-            run.SetValue("Flyleaf", $"\"{tray}\"");
-        }
-
-        Process.Start(new ProcessStartInfo(tray) { UseShellExecute = true })?.Dispose();
-        Ui.Info("Flyleaf is installed.\n\nOpen it from its icon in the system tray, add a note to a file, then hover over that file in Explorer.");
-        return 0;
-    }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Win32Exception)
-    {
-        Ui.Error($"Flyleaf could not be installed.\n\n{ex.Message}");
-        return 1;
-    }
-}
-
-static async Task<int> UninstallAsync()
-{
-    if (!Ui.Confirm("Remove Flyleaf from this PC?"))
+    if (!silent && !Ui.Confirm($"Install Flyleaf for {Environment.UserName}?\n\nA note on every file: hover over a file in File Explorer to read its note."))
     {
         return 0;
     }
@@ -79,73 +20,63 @@ static async Task<int> UninstallAsync()
     try
     {
         StopTrayApp();
+        await UserInstaller.InstallAsync(CancellationToken.None);
 
-        if (!await RunElevatedCopyAsync(["--elevated-uninstall"]))
+        if (!silent)
         {
-            return 1;
+            Ui.Info("Flyleaf is installed.\n\nTo add a note, right-click a file or folder, choose Show more options, then Add Flyleaf note.\n\nTo read it, rest your pointer on the item in File Explorer.");
         }
 
-        using (var run = Registry.CurrentUser.OpenSubKey(MachineInstaller.RunKey, writable: true))
+        return 0;
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Win32Exception or InvalidOperationException or InvalidDataException)
+    {
+        if (!silent)
         {
-            run?.DeleteValue("Flyleaf", throwOnMissingValue: false);
+            Ui.Error(ex.Message);
         }
+
+        return 1;
+    }
+}
+
+static int Uninstall(bool silent)
+{
+    if (!silent && !Ui.Confirm("Remove Flyleaf from this PC?"))
+    {
+        return 0;
+    }
+
+    try
+    {
+        StopTrayApp();
+        UserInstaller.Remove();
 
         var notesDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Flyleaf");
-        if (Directory.Exists(notesDirectory))
+        if (silent)
         {
-            if (Ui.AskDefaultNo($"Flyleaf has been removed.\n\nAlso permanently delete your notes?\n{notesDirectory}\n\nChoose No to keep them."))
-            {
-                Directory.Delete(notesDirectory, recursive: true);
-            }
+            return 0;
         }
-        else
+
+        if (!Directory.Exists(notesDirectory))
         {
             Ui.Info("Flyleaf has been removed.");
         }
+        else if (Ui.AskDefaultNo($"Flyleaf has been removed.\n\nAlso permanently delete your notes?\n{notesDirectory}\n\nChoose No to keep them."))
+        {
+            Directory.Delete(notesDirectory, recursive: true);
+        }
 
         return 0;
     }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Win32Exception)
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
     {
-        Ui.Error($"Flyleaf could not be removed.\n\n{ex.Message}");
+        if (!silent)
+        {
+            Ui.Error($"Flyleaf could not be removed.\n\n{ex.Message}");
+        }
+
         return 1;
-    }
-}
-
-static async Task<bool> RunElevatedCopyAsync(string[] arguments)
-{
-    const int ErrorCancelled = 1223;
-
-    var logPath = Path.GetTempFileName();
-    try
-    {
-        var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true, Verb = "runas" };
-        foreach (var argument in arguments)
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        start.ArgumentList.Add(logPath);
-
-        using var process = Process.Start(start)!;
-        await process.WaitForExitAsync();
-        if (process.ExitCode == 0)
-        {
-            return true;
-        }
-
-        var details = await File.ReadAllTextAsync(logPath);
-        Ui.Error(details.Length > 0 ? details : $"Setup stopped with error code {process.ExitCode}.");
-        return false;
-    }
-    catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
-    {
-        Ui.Info("Nothing was changed, because administrator approval was declined.");
-        return false;
-    }
-    finally
-    {
-        File.Delete(logPath);
     }
 }
 
@@ -178,12 +109,14 @@ namespace FlySetup
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static partial bool SetDefaultDllDirectories(uint flags);
 
-        [LibraryImport("kernel32.dll", EntryPoint = "MoveFileExW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static partial bool MoveFileEx(string existing, string? replacement, uint flags);
-
         [LibraryImport("user32.dll", EntryPoint = "MessageBoxW", StringMarshalling = StringMarshalling.Utf16)]
         internal static partial int MessageBox(nint owner, string text, string caption, uint type);
+
+        [LibraryImport("ole32.dll")]
+        internal static partial int CoInitializeEx(nint reserved, uint mode);
+
+        [LibraryImport("ole32.dll")]
+        internal static unsafe partial int CoCreateInstance(Guid* classId, nint outer, uint context, Guid* iid, nint* instance);
     }
 
     internal static class Ui

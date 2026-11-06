@@ -11,7 +11,7 @@ internal static class Program
     private const string ShowEventName = @"Local\Flyleaf.Tray.Show";
 
     /// <summary>Starts the tray app, or passes the request to the copy that is already running.</summary>
-    /// <param name="args">Optionally <c>--note &lt;path&gt;</c> from the Explorer menu, or <c>--remove-menu</c>.</param>
+    /// <param name="args">Optionally <c>--note &lt;path&gt;</c> from the Explorer menu, <c>--tray</c> from the startup entry, or <c>--remove-menu</c>.</param>
     [STAThread]
     private static void Main(string[] args)
     {
@@ -47,7 +47,7 @@ internal static class Program
         {
             _ = context.OpenNoteAsync(notePath);
         }
-        else if (!WasStartedAtSignIn())
+        else if (args is not ["--tray"] && !WasStartedAtSignIn())
         {
             // Starting at sign-in stays in the tray, but someone who clicks the Start menu entry expects to see something.
             context.ShowMainForm();

@@ -1,4 +1,5 @@
-# Builds dist\Flyleaf-Setup.exe, the one file to share. Needs the .NET 10 SDK and the Visual Studio C++ build tools.
+# Builds dist\Flyleaf-Setup.exe, the one file to share. It installs the one-app version per user, with no admin rights.
+# Needs the .NET 10 SDK and the Visual Studio C++ build tools.
 #
 # To sign, install your code-signing certificate and pass its thumbprint:
 #   .\installer\build.ps1 -CertThumbprint <thumbprint>
@@ -13,16 +14,12 @@ $env:PATH = "$env:ProgramFiles\dotnet;${env:ProgramFiles(x86)}\Microsoft Visual 
 
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $dist = Join-Path $root 'dist'
-$payload = Join-Path $dist 'payload'
-if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
-New-Item -ItemType Directory $payload | Out-Null
+$layout = Join-Path $env:TEMP 'flyleaf-setup-layout'
+$payload = Join-Path $env:TEMP 'flyleaf-setup-payload'
 
-function Publish([string]$project, [string[]]$extraArgs) {
-    $out = Join-Path $env:TEMP "flyleaf-publish\$project"
-    if (Test-Path $out) { Remove-Item $out -Recurse -Force }
-    & dotnet publish (Join-Path $root "src\$project\$project.csproj") -c Release -o $out @extraArgs | Write-Host
-    if ($LASTEXITCODE -ne 0) { throw "Publishing $project failed." }
-    return $out
+function Reset-Folder([string]$path) {
+    if (Test-Path $path) { Remove-Item $path -Recurse -Force }
+    New-Item -ItemType Directory $path | Out-Null
 }
 
 function Sign([string]$file) {
@@ -34,32 +31,40 @@ function Sign([string]$file) {
 }
 
 # FlySetup is built twice with different embedded resources, so never reuse the previous build's output.
-function Clean-FlySetup {
+function Publish-FlySetup([string]$out, [string[]]$extraArgs) {
     foreach ($folder in 'bin', 'obj') {
         $path = Join-Path $root "src\FlySetup\$folder"
         if (Test-Path $path) { Remove-Item $path -Recurse -Force }
     }
+
+    Reset-Folder $out
+    & dotnet publish (Join-Path $root 'src\FlySetup\FlySetup.csproj') -c Release -o $out @extraArgs | Write-Host
+    if ($LASTEXITCODE -ne 0) { throw 'Publishing FlySetup failed.' }
 }
 
-$tray = Publish 'Flyleaf' @('--self-contained', 'true', '-p:PublishSingleFile=true', '-p:EnableCompressionInSingleFile=true', '-p:IncludeNativeLibrariesForSelfExtract=true')
-Copy-Item (Join-Path $tray 'Flyleaf.exe') $payload
+if (Test-Path $dist) { Remove-Item (Join-Path $dist 'Flyleaf-Setup.exe') -Force -ErrorAction SilentlyContinue } else { New-Item -ItemType Directory $dist | Out-Null }
+Reset-Folder $layout
+Reset-Folder $payload
 
-$watcher = Publish 'FlyWatcher' @()
-Copy-Item (Join-Path $watcher 'FlyWatcher.exe') $payload
+# A normal folder install, like the Store package, so that the app never unpacks itself to a temp folder at run time.
+& dotnet publish (Join-Path $root 'src\FlyleafStore\FlyleafStore.csproj') -c Release --self-contained true -o $layout | Write-Host
+if ($LASTEXITCODE -ne 0) { throw 'Publishing Flyleaf failed.' }
+Get-ChildItem $layout -Filter '*.pdb' | Remove-Item -Force
+Get-ChildItem $layout -Filter '*.xml' | Remove-Item -Force
 
-$shell = Publish 'FlyShell' @()
-Copy-Item (Join-Path $shell 'FlyShell.dll') $payload
+$uninstallerOut = Join-Path $env:TEMP 'flyleaf-publish\Uninstaller'
+Publish-FlySetup $uninstallerOut @()
+Copy-Item (Join-Path $uninstallerOut 'Flyleaf-Setup.exe') (Join-Path $layout 'Uninstall-Flyleaf.exe')
 
-Clean-FlySetup
-$uninstaller = Publish 'FlySetup' @()
-Copy-Item (Join-Path $uninstaller 'Flyleaf-Setup.exe') (Join-Path $payload 'Uninstall-Flyleaf.exe')
+# Our own files are signed before packing, because Windows checks each one again once it is installed.
+foreach ($name in 'Flyleaf.exe', 'Flyleaf.dll', 'Flyleaf.Core.dll', 'Uninstall-Flyleaf.exe') { Sign (Join-Path $layout $name) }
 
-# Everything is signed before being embedded, because Windows checks each file again once it is installed.
-Get-ChildItem $payload -File | ForEach-Object { Sign $_.FullName }
+Compress-Archive -Path (Join-Path $layout '*') -DestinationPath (Join-Path $payload 'Flyleaf.zip') -CompressionLevel Optimal
 
-Clean-FlySetup
-$setup = Publish 'FlySetup' @("-p:PayloadDir=$payload")
-Copy-Item (Join-Path $setup 'Flyleaf-Setup.exe') $dist
-Sign (Join-Path $dist 'Flyleaf-Setup.exe')
+$setupOut = Join-Path $env:TEMP 'flyleaf-publish\Setup'
+Publish-FlySetup $setupOut @("-p:PayloadDir=$payload")
+$setup = Join-Path $dist 'Flyleaf-Setup.exe'
+Copy-Item (Join-Path $setupOut 'Flyleaf-Setup.exe') $setup
+Sign $setup
 
-Get-ChildItem $dist -File -Recurse | Select-Object Name, @{ n = 'SizeMB'; e = { [math]::Round($_.Length / 1MB, 1) } }, @{ n = 'Signature'; e = { (Get-AuthenticodeSignature $_.FullName).Status } } | Format-Table -AutoSize
+Get-Item $setup | Select-Object Name, @{ n = 'SizeMB'; e = { [math]::Round($_.Length / 1MB, 1) } }, @{ n = 'Signature'; e = { (Get-AuthenticodeSignature $_.FullName).Status } } | Format-Table -AutoSize

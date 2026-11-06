@@ -45,28 +45,32 @@ Flyleaf keeps that answer on the file itself, where you can see it the moment yo
 
 ## Project status
 
-Flyleaf is **pre-release**, and there's no public download yet.
+Flyleaf is **pre-release**. Build `Flyleaf-Setup.exe` from source to try it, as there's no public download yet.
 
 | Area | Status |
 |---|---|
 | Note editor, lists and history | Working |
 | Hover notes in real File Explorer | Working |
-| Right-click item in Windows 11's main menu | Built, needs an installed package to confirm |
+| `Flyleaf-Setup.exe` install and uninstall | Working |
+| Right-click item | Working, under **Show more options** |
+| Right-click item in Windows 11's main menu | Store package only, not yet tested |
 | Installed Store package | Not yet tested |
 | Microsoft Store listing | Not yet submitted |
 | Dark theme | Built, not yet tested |
 
 **Current builds are unsigned**, so Windows Smart App Control can block them, and SmartScreen may show a warning. See [Signing and distribution](#signing-and-distribution).
 
-## Two editions
+## Ways to install
 
-| | **Store edition** (current direction) | **Classic edition** |
+| | **Setup** (`Flyleaf-Setup.exe`) | **Microsoft Store package** (`Flyleaf.msix`) |
 |---|---|---|
-| **Parts** | One tray app | Tray app, Windows service, Explorer extension |
-| **Tooltip** | Flyleaf's own note card | Native Explorer tooltip |
-| **Admin rights** | Not required | Required |
-| **Signing** | Done by the Microsoft Store | Needs your own trusted certificate |
-| **Package** | `Flyleaf.msix` | `Flyleaf-Setup.exe` |
+| **The app** | One tray app with its own note card | The same app |
+| **Admin rights** | Not required | Not required |
+| **Installs for** | The current user | The current user |
+| **Right-click item** | Under **Show more options** | Main menu on Windows 11 |
+| **Signing** | Needs your own trusted certificate | Done by the Microsoft Store |
+
+The repo also keeps the source of the earlier **Classic edition**, with a Windows service and a native Explorer tooltip. It's no longer included in Setup.
 
 ## Documentation
 
@@ -84,16 +88,16 @@ You'll need Windows x64, the [.NET 10 SDK](https://dotnet.microsoft.com/download
 git clone https://github.com/rakeshnamadi/FlyLeaf.git
 ```
 
+Build Setup, which is written to `dist\Flyleaf-Setup.exe`. This is the single file to share:
+
+```bash
+powershell -ExecutionPolicy Bypass -File installer/build.ps1
+```
+
 Build the Store package, which is written to `dist\store\Flyleaf.msix`:
 
 ```bash
 powershell -ExecutionPolicy Bypass -File installer/build-store.ps1
-```
-
-Build the Classic setup, which is written to `dist\Flyleaf-Setup.exe`:
-
-```bash
-powershell -ExecutionPolicy Bypass -File installer/build.ps1
 ```
 
 Run the tests:
@@ -102,7 +106,7 @@ Run the tests:
 dotnet test tests/Flyleaf.Tests/Flyleaf.Tests.csproj -c Release
 ```
 
-On a PC with Smart App Control on, some service tests can't load their unsigned code. The [Technical Documentation](Documentation/Technical-Documentation.md#7-testing) has the details.
+The Classic service tests may not run on a PC with Smart App Control on, or without a Classic build. The [Technical Documentation](Documentation/Technical-Documentation.md#7-testing) has the details.
 
 ## Signing and distribution
 
@@ -122,9 +126,9 @@ src/Flyleaf.Core    Shared models, path rules, notes.json access, pipe protocol
 src/Flyleaf         Classic tray app and the shared note editor
 src/FlyWatcher      Classic Windows service
 src/FlyShell        Classic Explorer tooltip extension (Native AOT)
-src/FlySetup        Classic single-file setup and uninstaller
-src/FlyleafStore    Store edition: hover detection and note card
-src/FlyleafMenu     Store edition: Windows 11 right-click item (Native AOT)
+src/FlySetup        Single-file setup and uninstaller (per user)
+src/FlyleafStore    The app: hover detection and note card
+src/FlyleafMenu     Windows 11 main-menu item for the Store package (Native AOT)
 tests/              Unit and end-to-end tests
 installer/          Build scripts and icon generator
 Documentation/      Technical documentation, user manual and presentation
@@ -134,7 +138,7 @@ Documentation/      Technical documentation, user manual and presentation
 
 - Notes are per user and per PC, so colleagues don't see each other's notes.
 - Notes follow the file's path, so moving or renaming a file breaks the link. Flyleaf flags these as **path missing**.
-- The Store edition shows no notes in Home, search results or libraries.
+- Flyleaf shows no notes in Home, search results or libraries.
 - With extensions hidden, files that share a name show a labelled section for each note.
 
 ## License
