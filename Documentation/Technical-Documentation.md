@@ -36,8 +36,7 @@ The "Store edition" is the same app however it's installed. Only the Store packa
 |---|---|
 | Note editor, lists, history, missing-path highlighting | Working |
 | Store edition hover detection and note card in real File Explorer | Working (light theme) |
-| `Flyleaf-Setup.exe` install, sign-in start and uninstall steps | Tested on the build before the new dialogs |
-| Designed Setup dialogs | Shown correctly in preview on an earlier build. The real flow is **not yet tested**, because Smart App Control blocked the final builds on the test PC |
+| `Flyleaf-Setup.exe` with the designed dialogs | Working: confirmed in a manual test on a PC with Smart App Control off. Smart App Control blocked this build on a PC with it on |
 | Right-click item when installed by Setup | Working (under **Show more options**) |
 | Main-menu DLL | Works when called directly through COM. Not yet seen in a real menu |
 | Installed MSIX package | **Not yet tested** |
@@ -428,16 +427,14 @@ These ran on Windows 11 with Smart App Control on, using temporary notes files.
 | Hover and right-click item from the installed copy | Passed |
 | Start at sign-in (`--tray`) opens no window | Passed |
 | Uninstall removes everything and keeps real notes | Passed |
+| Final Setup with the designed dialogs, on a PC with Smart App Control off | Passed in a manual test |
 
 ### 7.3 Still to test
 
 - Installing and starting the MSIX, including start at sign-in.
 - The item in Windows 11's main right-click menu, and its icon.
-- **The new dialogs in a real install and uninstall**, including progress, the notes check box, Tab, Enter and Esc. Smart App Control blocked the final Setup and uninstaller builds on the test PC, so run this first on a PC with it off.
-- The per-user extraction code added with the dialogs.
+- Tab, Enter and Esc in the Setup dialogs.
 - Setup's Blocked and Failed dialogs when reached for real, rather than in preview.
-- The final spacing of the Confirm dialog and the keyboard-only focus ring, which were changed after the last build Windows allowed.
-- Setup on a second PC with a downloaded copy.
 - Screen readers: buttons and the check box are real controls, but the dialogs' other text is painted, so screen readers don't read it.
 - The dark theme, desktop hover and multiple Explorer tabs.
 - Drag-and-drop, Browse and the tray menu by hand.

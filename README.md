@@ -52,8 +52,7 @@ Flyleaf is **pre-release**. Build `Flyleaf-Setup.exe` from source to try it, as 
 |---|---|
 | Note editor, lists and history | Working |
 | Hover notes in real File Explorer | Working |
-| Designed install and uninstall dialogs | Built, shown correctly in preview. **Clicking through a real install or uninstall isn't tested yet**, because Smart App Control blocked these builds on the test PC |
-| Install and uninstall steps, without the new dialogs | Tested on the previous build |
+| Designed install and uninstall dialogs | Working: confirmed in a manual test on a PC with Smart App Control off |
 | Right-click item | Working, under **Show more options** |
 | Right-click item in Windows 11's main menu | Store package only, not yet tested |
 | Installed Store package | Not yet tested |
