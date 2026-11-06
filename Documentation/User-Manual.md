@@ -17,7 +17,13 @@ Flyleaf has no accounts, logins or permission levels. Everyone who installs it c
 | **IT administrator** | Install, support and back up Flyleaf | [IT administrator](#it-administrator) |
 | **Developer or maintainer** | Build and release Flyleaf | [Developer or maintainer](#developer-or-maintainer) |
 
-> **Before you start:** Flyleaf is pre-release and isn't in the Microsoft Store yet. To install it, double-click `Flyleaf-Setup.exe` and click **OK**. It needs no admin rights. If Windows shows **"Windows protected your PC"**, see [IT administrator](#smart-app-control-and-smartscreen).
+> **Before you start:** Flyleaf is pre-release and isn't in the Microsoft Store yet. To install it, double-click `Flyleaf-Setup.exe` and click **Install**. It needs no admin rights. If Windows shows **"Windows protected your PC"**, see [IT administrator](#smart-app-control-and-smartscreen).
+
+![The Flyleaf Setup welcome dialog](images/setup-welcome.png)
+
+When it finishes, Setup shows how to add your first note. Flyleaf is then running in the system tray.
+
+![The dialog shown when installation finishes](images/setup-installed.png)
 
 ---
 
@@ -136,7 +142,7 @@ Current builds are unsigned, so Windows may stop them:
 |---|---|---|
 | **"An Application Control policy has blocked this file"** | Smart App Control blocked an unsigned file | Use a signed or Store build. We don't recommend turning Smart App Control off, because turning it back on may not be possible without resetting Windows. |
 | **"Windows protected your PC"** | SmartScreen doesn't recognise the file | Confirm where the file came from, then choose **More info > Run anyway**. |
-| **"Windows blocked Flyleaf from running, and the changes have been undone"** | Setup installed the app, Windows blocked it, and Setup removed it | Use a signed copy. No clean-up is needed. |
+| **Setup shows "Windows blocked Flyleaf"** | Setup installed the app, Windows blocked it, and Setup removed it | Use a signed copy. No clean-up is needed. |
 
 ### What Flyleaf changes on a PC
 
@@ -174,7 +180,11 @@ If `notes.json` is ever damaged, Flyleaf keeps it as `notes.corrupt-<date>.json`
 
 ### Uninstall
 
-Go to **Settings > Apps > Installed apps > Flyleaf > Uninstall**, then answer the prompt about your notes. They're kept unless you choose to delete them.
+1. Go to **Settings > Apps > Installed apps > Flyleaf > Uninstall**.
+2. Leave **Also delete my notes** off to keep your notes, or turn it on to delete them permanently.
+3. Click **Remove**, or **Keep Flyleaf** to change your mind.
+
+If you keep your notes and install Flyleaf again, it picks them up automatically.
 
 ---
 

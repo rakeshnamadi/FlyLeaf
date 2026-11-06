@@ -13,6 +13,7 @@
 <p align="center">
   <img alt="Platform: Windows x64" src="https://img.shields.io/badge/platform-Windows%20x64-0F766E">
   <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-0F766E">
+  <img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-0F766E">
   <img alt="Status: pre-release" src="https://img.shields.io/badge/status-pre--release-B45309">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-0F766E"></a>
 </p>
@@ -51,7 +52,8 @@ Flyleaf is **pre-release**. Build `Flyleaf-Setup.exe` from source to try it, as 
 |---|---|
 | Note editor, lists and history | Working |
 | Hover notes in real File Explorer | Working |
-| `Flyleaf-Setup.exe` install and uninstall | Working |
+| Designed install and uninstall dialogs | Built, shown correctly in preview. **Clicking through a real install or uninstall isn't tested yet**, because Smart App Control blocked these builds on the test PC |
+| Install and uninstall steps, without the new dialogs | Tested on the previous build |
 | Right-click item | Working, under **Show more options** |
 | Right-click item in Windows 11's main menu | Store package only, not yet tested |
 | Installed Store package | Not yet tested |
@@ -59,6 +61,15 @@ Flyleaf is **pre-release**. Build `Flyleaf-Setup.exe` from source to try it, as 
 | Dark theme | Built, not yet tested |
 
 **Current builds are unsigned**, so Windows Smart App Control can block them, and SmartScreen may show a warning. See [Signing and distribution](#signing-and-distribution).
+
+## Setup
+
+Setup walks you through installing, with a matching flow for removing Flyleaf. If Windows blocks it, it says so plainly and removes what it added.
+
+<p align="center">
+  <img src="Documentation/images/setup-welcome.png" alt="The Flyleaf Setup welcome dialog" width="420">
+  <img src="Documentation/images/setup-installed.png" alt="The Flyleaf Setup dialog shown when installation finishes" width="420">
+</p>
 
 ## Ways to install
 

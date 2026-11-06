@@ -5,9 +5,9 @@
 | | |
 |---|---|
 | **Product** | Flyleaf, a Windows utility that attaches text notes to files and folders |
-| **Version** | 1.0.0 (pre-release) |
+| **Version** | 1.0.0 (pre-release, Git tag `ver1.0.0`) |
 | **Platform** | 64-bit Windows, .NET 10 |
-| **Last updated** | 5 November 2026 |
+| **Last updated** | 7 November 2026 |
 
 **Contents:** [Overview](#1-overview) · [SDLC summary](#2-sdlc-summary) · [Requirements](#3-requirements) · [Design](#4-design) · [Sequence diagrams](#5-sequence-diagrams) · [Implementation](#6-implementation) · [Testing](#7-testing) · [Deployment](#8-deployment) · [Maintenance](#9-maintenance) · [Risks](#10-risks-and-limitations) · [Decision log](#11-decision-log)
 
@@ -36,7 +36,8 @@ The "Store edition" is the same app however it's installed. Only the Store packa
 |---|---|
 | Note editor, lists, history, missing-path highlighting | Working |
 | Store edition hover detection and note card in real File Explorer | Working (light theme) |
-| `Flyleaf-Setup.exe` install, sign-in start and uninstall | Working on Windows 11 |
+| `Flyleaf-Setup.exe` install, sign-in start and uninstall steps | Tested on the build before the new dialogs |
+| Designed Setup dialogs | Shown correctly in preview on an earlier build. The real flow is **not yet tested**, because Smart App Control blocked the final builds on the test PC |
 | Right-click item when installed by Setup | Working (under **Show more options**) |
 | Main-menu DLL | Works when called directly through COM. Not yet seen in a real menu |
 | Installed MSIX package | **Not yet tested** |
@@ -284,17 +285,21 @@ sequenceDiagram
     participant Profile as User profile and registry
     participant App as Flyleaf.exe
 
-    User->>Setup: Run it and click OK
+    User->>Setup: Run it and click Install on the Welcome dialog
+    Setup-->>User: Show the Installing dialog and report progress
     Setup->>Setup: Stop any running copy
     Setup->>Profile: Extract to Flyleaf.new, then replace the old folder
     Setup->>Profile: Add startup, Add/Remove Programs and Start menu entries
-    Setup->>App: Start the app and check it keeps running
+    Setup->>App: Start the app in the tray and check it keeps running
     alt The app is running
         App->>Profile: Add the right-click item
-        Setup-->>User: Flyleaf is installed
-    else Windows blocks the app or it fails to start
+        Setup-->>User: Show the Installed dialog
+    else Windows blocks the app
         Setup->>Profile: Remove everything it added
-        Setup-->>User: Show the reason
+        Setup-->>User: Show the Blocked dialog
+    else Another step fails
+        Setup->>Profile: Remove everything it added
+        Setup-->>User: Show the Failed dialog with the reason
     end
 ```
 
@@ -379,7 +384,7 @@ sequenceDiagram
 | `src/Flyleaf` | `Flyleaf.exe` | Classic tray app. Owns the shared `MainForm` and tray code |
 | `src/FlyWatcher` | `FlyWatcher.exe` | Classic service: index, file watcher, pipe server |
 | `src/FlyShell` | `FlyShell.dll` | Classic Explorer tooltip handler |
-| `src/FlySetup` | `Flyleaf-Setup.exe` | Per-user installer for the Store edition app, also built without files as the uninstaller |
+| `src/FlySetup` | `Flyleaf-Setup.exe` | Per-user installer for the Store edition app with designed dialogs, also built without files as the uninstaller. `--silent` shows no dialogs, and `--preview <screen>` shows one dialog and changes nothing |
 | `src/FlyleafStore` | `Flyleaf.exe` | Store edition: hover detection, note card, single-instance channel |
 | `src/FlyleafMenu` | `FlyleafMenu.dll` | Store edition main-menu command |
 | `tests/Flyleaf.Tests` | Test assembly | Unit and end-to-end tests |
@@ -428,8 +433,12 @@ These ran on Windows 11 with Smart App Control on, using temporary notes files.
 
 - Installing and starting the MSIX, including start at sign-in.
 - The item in Windows 11's main right-click menu, and its icon.
-- Setup on a second PC, with a downloaded copy and the prompts shown. Tests so far ran locally and silently.
-- Setup's "blocked" message and clean-up in this per-user version, which is untested because Windows allowed the app.
+- **The new dialogs in a real install and uninstall**, including progress, the notes check box, Tab, Enter and Esc. Smart App Control blocked the final Setup and uninstaller builds on the test PC, so run this first on a PC with it off.
+- The per-user extraction code added with the dialogs.
+- Setup's Blocked and Failed dialogs when reached for real, rather than in preview.
+- The final spacing of the Confirm dialog and the keyboard-only focus ring, which were changed after the last build Windows allowed.
+- Setup on a second PC with a downloaded copy.
+- Screen readers: buttons and the check box are real controls, but the dialogs' other text is painted, so screen readers don't read it.
 - The dark theme, desktop hover and multiple Explorer tabs.
 - Drag-and-drop, Browse and the tray menu by hand.
 
@@ -507,6 +516,7 @@ Building needs the .NET 10 SDK and the Visual Studio C++ build tools. Build outp
 | File watcher instead of a pipe "changed" signal | Simpler, with no extra message type |
 | Custom setup instead of ClickOnce, WiX or NSIS | One double-click file with no extra build tooling |
 | Setup installs the one-app version per user | No admin prompt and no service for Windows to block, so peers can install it themselves |
+| Setup's dialogs use the Windows API directly | Setup stays a small native program, adding very little to its size, with real controls for buttons and the check box |
 | Setup installs a folder, not a single-file app | It matches the tested package layout, and nothing unpacks to a temp folder at run time |
 | Added a Store edition | Smart App Control blocks unsigned files whichever language they're written in, and the Store signs packages |
 | Own note card in the Store edition | Packaged apps can't load an in-process tooltip handler into Explorer |
