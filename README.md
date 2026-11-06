@@ -14,6 +14,7 @@
   <img alt="Platform: Windows x64" src="https://img.shields.io/badge/platform-Windows%20x64-0F766E">
   <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-0F766E">
   <img alt="Status: pre-release" src="https://img.shields.io/badge/status-pre--release-B45309">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-0F766E"></a>
 </p>
 
 <p align="center">
@@ -138,4 +139,4 @@ Documentation/      Technical documentation, user manual and presentation
 
 ## License
 
-No license has been chosen yet, so all rights are reserved by the author for now.
+Flyleaf is released under the [MIT License](LICENSE).
